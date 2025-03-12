@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -76,10 +75,10 @@ const EmployeeDashboard = () => {
     }
   };
 
-  // Filter requests by status
-  const pendingRequests = timeOffRequests.filter(req => req.status === "pending");
-  const approvedRequests = timeOffRequests.filter(req => req.status === "approved");
-  const deniedRequests = timeOffRequests.filter(req => req.status === "denied");
+  // Filter requests by status - only show the employee's own requests
+  const pendingRequests = timeOffRequests.filter(req => req.status === "pending" && req.employeeId === currentUserId);
+  const approvedRequests = timeOffRequests.filter(req => req.status === "approved" && req.employeeId === currentUserId);
+  const deniedRequests = timeOffRequests.filter(req => req.status === "denied" && req.employeeId === currentUserId);
 
   return (
     <Layout>
