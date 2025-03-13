@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { currentUserId, getManagerRequests } from "@/lib/mockData";
+import { apiService } from "@/services/api";
 import { TimeOffRequest } from "@/types";
 import { toast } from "sonner";
 import TimeOffCard from "@/components/TimeOffCard";
@@ -22,14 +22,19 @@ const ManagerDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("newest");
+  const currentUserId = apiService.getCurrentUserId();
 
   // Fetch time off requests
   useEffect(() => {
     const fetchRequests = async () => {
       setIsLoading(true);
       try {
-        const requests = await getManagerRequests(currentUserId);
-        setTimeOffRequests(requests);
+        const response = await apiService.getManagerRequests(currentUserId);
+        if (response.data) {
+          setTimeOffRequests(response.data);
+        } else if (response.error) {
+          toast.error(response.error);
+        }
       } catch (error) {
         console.error("Failed to fetch requests:", error);
         toast.error("Failed to load time off requests");

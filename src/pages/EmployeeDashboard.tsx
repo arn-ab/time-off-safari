@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DateRangePicker from "@/components/DateRangePicker";
 import { DateRange, TimeOffRequest } from "@/types";
 import { Textarea } from "@/components/ui/textarea";
-import { createTimeOffRequest, currentUserId, getEmployeeRequests } from "@/lib/mockData";
+import { apiService } from "@/services/api";
 import { toast } from "sonner";
 import TimeOffCard from "@/components/TimeOffCard";
 import { format } from "date-fns";
@@ -19,14 +20,19 @@ const EmployeeDashboard = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const currentUserId = apiService.getCurrentUserId();
 
   // Fetch time off requests
   useEffect(() => {
     const fetchRequests = async () => {
       setIsLoading(true);
       try {
-        const requests = await getEmployeeRequests(currentUserId);
-        setTimeOffRequests(requests);
+        const response = await apiService.getEmployeeRequests(currentUserId);
+        if (response.data) {
+          setTimeOffRequests(response.data);
+        } else if (response.error) {
+          toast.error(response.error);
+        }
       } catch (error) {
         console.error("Failed to fetch requests:", error);
         toast.error("Failed to load time off requests");
@@ -55,18 +61,22 @@ const EmployeeDashboard = () => {
     setIsSubmitting(true);
     
     try {
-      const newRequest = await createTimeOffRequest(
+      const response = await apiService.createTimeOffRequest(
         currentUserId,
         format(dateRange.from, "yyyy-MM-dd"),
         format(dateRange.to, "yyyy-MM-dd"),
         reason
       );
       
-      setTimeOffRequests(prev => [...prev, newRequest]);
-      setDateRange({ from: undefined, to: undefined });
-      setReason("");
-      setCurrentTab("pending");
-      toast.success("Time off request submitted successfully");
+      if (response.data) {
+        setTimeOffRequests(prev => [...prev, response.data!]);
+        setDateRange({ from: undefined, to: undefined });
+        setReason("");
+        setCurrentTab("pending");
+        toast.success("Time off request submitted successfully");
+      } else if (response.error) {
+        toast.error(response.error);
+      }
     } catch (error) {
       console.error("Failed to submit request:", error);
       toast.error("Failed to submit time off request");

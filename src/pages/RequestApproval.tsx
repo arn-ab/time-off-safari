@@ -5,8 +5,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Check, ChevronLeft, Clock, X } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getRequestById, mockUsers, updateRequestStatus } from "@/lib/mockData";
-import { TimeOffRequest } from "@/types";
+import { apiService } from "@/services/api";
+import { TimeOffRequest, User } from "@/types";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ const RequestApproval = () => {
   const [request, setRequest] = useState<TimeOffRequest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [manager, setManager] = useState<User | null>(null);
 
   useEffect(() => {
     const fetchRequest = async () => {
@@ -29,15 +30,21 @@ const RequestApproval = () => {
           return;
         }
         
-        const result = await getRequestById(requestId);
+        const response = await apiService.getRequestById(requestId);
         
-        if (!result) {
-          toast.error("Request not found");
+        if (!response.data) {
+          toast.error(response.error || "Request not found");
           navigate("/manager");
           return;
         }
         
-        setRequest(result);
+        setRequest(response.data);
+        
+        // Fetch manager info
+        const managerResponse = await apiService.getUserById(response.data.managerId);
+        if (managerResponse.data) {
+          setManager(managerResponse.data);
+        }
       } catch (error) {
         console.error("Failed to fetch request:", error);
         toast.error("Failed to load request details");
@@ -55,9 +62,13 @@ const RequestApproval = () => {
     
     setActionLoading(true);
     try {
-      const updatedRequest = await updateRequestStatus(request.id, status);
-      setRequest(updatedRequest);
-      toast.success(`Request ${status}`);
+      const response = await apiService.updateRequestStatus(request.id, status);
+      if (response.data) {
+        setRequest(response.data);
+        toast.success(`Request ${status}`);
+      } else if (response.error) {
+        toast.error(response.error);
+      }
     } catch (error) {
       console.error("Failed to update request:", error);
       toast.error("Failed to update request status");
@@ -66,9 +77,8 @@ const RequestApproval = () => {
     }
   };
 
-  // Get employee manager name
-  const getManagerName = (managerId: string) => {
-    const manager = mockUsers.find(user => user.id === managerId);
+  // Get manager name
+  const getManagerName = () => {
     return manager?.name || "Unknown";
   };
 

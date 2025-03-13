@@ -29,3 +29,8 @@ export type DateRange = {
   to: Date | undefined;
 };
 
+export interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+  status: number;
+}
